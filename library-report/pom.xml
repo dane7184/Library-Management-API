@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.library</groupId>
+        <artifactId>library-management</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>library-report</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.library</groupId>
+            <artifactId>library-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.library</groupId>
+            <artifactId>library-book</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.library</groupId>
+            <artifactId>library-borrow</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.library</groupId>
+            <artifactId>library-return</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+        </dependency>
+    </dependencies>
+</project>

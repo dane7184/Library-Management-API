@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: library-postgres
+    environment:
+      POSTGRES_DB: library_db
+      POSTGRES_USER: library
+      POSTGRES_PASSWORD: library
+    ports:
+      - "5433:5432"   # 5433 on the host: a native Windows PostgreSQL already owns 5432
+    volumes:
+      - pg_data:/var/lib/postgresql   # PG 18+ image keeps data under /var/lib/postgresql/18/docker
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U library -d library_db"]
+      interval: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: library-keycloak
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./docker/keycloak/library-realm.json:/opt/keycloak/data/import/library-realm.json:ro
+
+  app:
+    build: .
+    container_name: library-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/library_db
+      DB_USERNAME: library
+      DB_PASSWORD: library
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/library/protocol/openid-connect/certs
+      KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/library/protocol/openid-connect/token
+    ports:
+      - "8080:8080"
+
+volumes:
+  pg_data:

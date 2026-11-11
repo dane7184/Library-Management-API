@@ -1,0 +1,70 @@
+{
+  "realm": "library",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "ADMIN",
+        "description": "Full access"
+      },
+      {
+        "name": "LIBRARIAN",
+        "description": "Manage borrow / return"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "library-api",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "redirectUris": [
+        "*"
+      ],
+      "webOrigins": [
+        "*"
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@library.local",
+      "emailVerified": true,
+      "firstName": "Library",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "ADMIN",
+        "LIBRARIAN"
+      ]
+    },
+    {
+      "username": "librarian",
+      "enabled": true,
+      "email": "librarian@library.local",
+      "emailVerified": true,
+      "firstName": "Library",
+      "lastName": "Staff",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "librarian123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "LIBRARIAN"
+      ]
+    }
+  ]
+}
