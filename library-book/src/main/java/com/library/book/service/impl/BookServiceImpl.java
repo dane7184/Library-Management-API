@@ -2,6 +2,7 @@ package com.library.book.service.impl;
 
 import com.library.book.dto.BookRequest;
 import com.library.book.dto.BookResponse;
+import com.library.book.dto.BookSearchCriteria;
 import com.library.book.entity.Book;
 import com.library.book.mapper.BookMapper;
 import com.library.book.repository.BookRepository;
@@ -9,11 +10,17 @@ import com.library.book.service.BookService;
 import com.library.common.enums.RecStatus;
 import com.library.common.exception.BusinessException;
 import com.library.common.exception.ResourceNotFoundException;
+import com.library.common.response.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+
+import static com.library.book.specification.BookSpecifications.*;
 
 /**
  * Business rules (from spec):
@@ -27,6 +34,8 @@ import java.util.List;
 public class BookServiceImpl implements BookService {
 
     private static final int MIN_AMOUNT_ON_CREATE = 1;
+    /** Mirrors the DB check constraint on book.amount. */
+    static final int MAX_AMOUNT = 20;
 
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
@@ -56,7 +65,8 @@ public class BookServiceImpl implements BookService {
 
     @Override
     public BookResponse update(Long id, BookRequest request) {
-        Book book = findActive(id);
+        // Locked so an admin edit can't overwrite a concurrent borrow/return stock change.
+        Book book = findActiveForUpdate(id);
         bookRepository.findFirstByTitleIgnoreCaseAndAuthorIgnoreCaseAndYear(request.title(), request.author(), request.year())
                 .filter(other -> !other.getId().equals(id))
                 .ifPresent(other -> {
@@ -83,8 +93,61 @@ public class BookServiceImpl implements BookService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookResponse> search(BookSearchCriteria criteria, Pageable pageable) {
+        Specification<Book> spec = Specification.allOf(
+                isActive(),
+                titleContains(criteria.title()),
+                authorContains(criteria.author()),
+                yearEquals(criteria.year()),
+                statusEquals(criteria.status()));
+        return PageResponse.of(bookRepository.findAll(spec, pageable).map(bookMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Book decreaseStock(Long bookId, int quantity) {
+        requirePositive(quantity);
+        Book book = findActiveForUpdate(bookId);
+        if (quantity > book.getAmount()) {
+            throw new BusinessException("Not enough copies of '" + book.getTitle() + "': requested " + quantity
+                    + ", available " + book.getAmount());
+        }
+        book.setAmount(book.getAmount() - quantity);
+        book.refreshBookStatus();
+        return book;
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Book increaseStock(Long bookId, int quantity) {
+        requirePositive(quantity);
+        // Not filtered by recStatus: copies of a soft-deleted book can still come back.
+        Book book = bookRepository.findByIdForUpdate(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book", bookId));
+        if (book.getAmount() + quantity > MAX_AMOUNT) {
+            throw new BusinessException("Returning " + quantity + " copies of '" + book.getTitle()
+                    + "' would exceed the maximum stock of " + MAX_AMOUNT + " (current " + book.getAmount() + ")");
+        }
+        book.setAmount(book.getAmount() + quantity);
+        book.refreshBookStatus();
+        return book;
+    }
+
+    private static void requirePositive(int quantity) {
+        if (quantity < 1) {
+            throw new BusinessException("quantity must be at least 1");
+        }
+    }
+
     private Book findActive(Long id) {
         return bookRepository.findByIdAndRecStatus(id, RecStatus.ACTIVE)
+                .orElseThrow(() -> new ResourceNotFoundException("Book", id));
+    }
+
+    private Book findActiveForUpdate(Long id) {
+        return bookRepository.findByIdAndRecStatusForUpdate(id, RecStatus.ACTIVE)
                 .orElseThrow(() -> new ResourceNotFoundException("Book", id));
     }
 }

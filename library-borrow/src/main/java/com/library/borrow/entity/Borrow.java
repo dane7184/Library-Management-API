@@ -46,4 +46,20 @@ public class Borrow extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private BorrowStatus borrowStatus = BorrowStatus.BORROW;
+
+    /**
+     * Derives borrowStatus from owe and the due date: nothing owed -> RETURN; past due -> OVER;
+     * partly returned -> OWE; nothing returned yet -> BORROW.
+     */
+    public void refreshBorrowStatus(LocalDate today) {
+        if (owe == 0) {
+            borrowStatus = BorrowStatus.RETURN;
+        } else if (returnDate.isBefore(today)) {
+            borrowStatus = BorrowStatus.OVER;
+        } else if (owe < amount) {
+            borrowStatus = BorrowStatus.OWE;
+        } else {
+            borrowStatus = BorrowStatus.BORROW;
+        }
+    }
 }

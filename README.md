@@ -76,3 +76,6 @@ Users: `admin` / `admin123` (ADMIN, LIBRARIAN), `librarian` / `librarian123` (LI
 | Reports   | `/api/v1/reports/books`, `/borrows`, `/returns` (xlsx) |
 
 CRUD per feature: `POST /`, `GET /{id}`, `PUT /{id}`, `DELETE /{id}` (soft delete), `GET /`.
+
+Book search (paged, all filters optional, max page size 100):
+`GET /api/v1/books/search?title=java&author=martin&year=2008&status=AVAILABLE&page=0&size=20&sort=title,asc`
