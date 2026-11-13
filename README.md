@@ -41,7 +41,7 @@ docker compose up -d --build
 
 # Or: infra in Docker, app from the IDE
 docker compose up -d postgres keycloak
-mvn -pl library-app -am spring-boot:run -Dspring-boot.run.profiles=dev
+./gradlew :library-app:bootRun --args="--spring.profiles.active=dev"
 ```
 
 - API / Swagger: http://localhost:8080/swagger-ui.html
